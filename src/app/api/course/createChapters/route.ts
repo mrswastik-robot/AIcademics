@@ -11,6 +11,7 @@ import { ZodError } from "zod";
 import axios from "axios";
 
 import { strict_output } from "@/lib/gpt";
+import { getUnsplashImage } from "@/lib/unsplash";
 
 export  async function POST(req: Request, res: Response) {
 
@@ -45,8 +46,22 @@ export  async function POST(req: Request, res: Response) {
             },
         );
         
-        console.log(output_units);
-        return NextResponse.json(output_units);
+        // console.log(output_units);
+        // return NextResponse.json(output_units, {status: 200});
+
+         const imageSearchTerm = await strict_output(
+            "you are an AI capable of finding the most relevant image for a course",
+            `Please provide a good image search term for the title of a course about ${title}. This search term will be fed into the unsplash API, so make sure it is a good search term that will return good results`,
+            {
+                image_search_term: "a good search term for the title of the course",
+            }
+        );
+
+        return NextResponse.json({output_units, imageSearchTerm})
+
+        const course_image = await getUnsplashImage(
+            imageSearchTerm.image_search_term
+        );
 
     } catch (error) {
 
