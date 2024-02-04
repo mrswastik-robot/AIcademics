@@ -47,7 +47,7 @@ export  async function POST(req: Request, res: Response) {
         );
         
         // console.log(output_units);
-        // return NextResponse.json(output_units, {status: 200});
+        // return NextResponse.json(output_units, {status: 200});            //see output at postman at 1:55:24
 
          const imageSearchTerm = await strict_output(
             "you are an AI capable of finding the most relevant image for a course",
@@ -57,12 +57,47 @@ export  async function POST(req: Request, res: Response) {
             }
         );
 
-        return NextResponse.json({output_units, imageSearchTerm})
+        // return NextResponse.json({output_units, imageSearchTerm}, {status: 200})            //see output at postman at 2:01:48
 
         const course_image = await getUnsplashImage(
             imageSearchTerm.image_search_term
         );
 
+        //ab nyi entry bana rahe under course table in out mysql db
+
+        const course = await prisma.course.create({
+            data: {
+                name: title,
+                image: course_image,
+            }
+        });
+
+        //now that we have created the course, we will create the chapters and units for the course
+
+        for (const unit of output_units)
+        {
+            const title = unit.title
+
+            const prismaUnit = await prisma.unit.create({
+                data:{
+                    name: title,
+                    courseId: course.id
+                }
+            });
+
+            await prisma.chapter.createMany({
+                data: unit.chapters.map((chapter) => {
+                return {
+                    name: chapter.chapter_title,
+                    youtubeSearchQuery: chapter.youtube_search_query,
+                    unitId: prismaUnit.id,
+                };
+                }),
+            });
+        }
+
+        return NextResponse.json({course_id: course.id})                //this will be responsible for redirecting the page after creating the form and clicking on ' let's go ' button
+                                                                        // watch at 2:07:40 for the complete database relations
     } catch (error) {
 
         if(error instanceof ZodError)
