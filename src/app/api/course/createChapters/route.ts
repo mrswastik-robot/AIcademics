@@ -97,7 +97,7 @@ export  async function POST(req: Request, res: Response) {
         }
 
         return NextResponse.json({course_id: course.id})                //this will be responsible for redirecting the page after creating the form and clicking on ' let's go ' button
-                                                                        // watch at 2:07:40 for the complete database relations
+                                                                        // 2:07 for the complete database relations
     } catch (error) {
 
         if(error instanceof ZodError)

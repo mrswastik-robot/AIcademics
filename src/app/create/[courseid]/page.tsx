@@ -1,10 +1,40 @@
+import { getAuthSession } from '@/lib/auth'
+import { prisma } from '@/lib/db'
+import { redirect } from 'next/navigation'
 import React from 'react'
 
-type Props = {}
+type Props = {
+  params: {
+    courseid: string,
+  }
+}
 
-const page = (props: Props) => {
+const page = async({params: {courseid}}: Props) => {
+
+  const session = await getAuthSession();
+  if (!session?.user) {
+    return redirect("/gallery");
+  }
+
+  const course = await prisma.course.findUnique({
+    where: {
+      id: courseid
+    },
+    include: {
+      units:{
+        include: {
+          chapters: true,
+        }
+      }
+    }
+  })
+
+  if (!course) {
+    return redirect("/create");
+  }
+
   return (
-    <div>page</div>
+    <pre>{JSON.stringify(course,null,2)}</pre>
   )
 }
 
