@@ -10,8 +10,8 @@ import { Loader2 } from "lucide-react";
 type Props = {
   chapter: Chapter;
   chapterIndex: number;
-  // completedChapters: Set<String>;
-  // setCompletedChapters: React.Dispatch<React.SetStateAction<Set<String>>>;
+  completedChapters: Set<String>;
+  setCompletedChapters: React.Dispatch<React.SetStateAction<Set<String>>>;
 };
 
 export type ChapterCardHandler = {
@@ -19,57 +19,57 @@ export type ChapterCardHandler = {
 };
 
 const ChapterCard = React.forwardRef<ChapterCardHandler, Props>(
-  ({ chapter, chapterIndex }, ref) => {
-  //   const { toast } = useToast();
+  ({ chapter, chapterIndex, completedChapters, setCompletedChapters }, ref) => {
+    const { toast } = useToast();
     const [success, setSuccess] = React.useState<boolean | null>(null);
-    // const { mutate: getChapterInfo, isLoading } = useMutation({
-    //   mutationFn: async () => {
-    //     const response = await axios.post("/api/chapter/getInfo", {
-    //       chapterId: chapter.id,
-    //     });
-    //     return response.data;
-    //   },
-    // });
+    const { mutate: getChapterInfo, isPending } = useMutation({
+      mutationFn: async () => {
+        const response = await axios.post("/api/chapter/getInfo", {
+          chapterId: chapter.id,
+        });
+        return response.data;
+      },
+    });
 
-    // const addChapterIdToSet = React.useCallback(() => {
-    //   setCompletedChapters((prev) => {
-    //     const newSet = new Set(prev);
-    //     newSet.add(chapter.id);
-    //     return newSet;
-    //   });
-    // }, [chapter.id, setCompletedChapters]);
+    const addChapterIdToSet = React.useCallback(() => {
+      setCompletedChapters((prev) => {
+        const newSet = new Set(prev);
+        newSet.add(chapter.id);
+        return newSet;
+      });
+    }, [chapter.id, setCompletedChapters]);
 
-    // React.useEffect(() => {
-    //   if (chapter.videoId) {
-    //     setSuccess(true);
-    //     addChapterIdToSet;
-    //   }
-    // }, [chapter, addChapterIdToSet]);
+    React.useEffect(() => {
+      if (chapter.videoId) {
+        setSuccess(true);
+        addChapterIdToSet;
+      }
+    }, [chapter, addChapterIdToSet]);
 
-    // React.useImperativeHandle(ref, () => ({
-    //   async triggerLoad() {
-    //     if (chapter.videoId) {
-    //       addChapterIdToSet();
-    //       return;
-    //     }
-    //     getChapterInfo(undefined, {
-    //       onSuccess: () => {
-    //         setSuccess(true);
-    //         addChapterIdToSet();
-    //       },
-    //       onError: (error) => {
-    //         console.error(error);
-    //         setSuccess(false);
-    //         toast({
-    //           title: "Error",
-    //           description: "There was an error loading your chapter",
-    //           variant: "destructive",
-    //         });
-    //         addChapterIdToSet();
-    //       },
-    //     });
-    //   },
-    // }));
+    React.useImperativeHandle(ref, () => ({
+      async triggerLoad() {
+        if (chapter.videoId) {
+          addChapterIdToSet();
+          return;
+        }
+        getChapterInfo(undefined, {
+          onSuccess: () => {
+            setSuccess(true);
+            addChapterIdToSet();
+          },
+          onError: (error) => {
+            console.error(error);
+            setSuccess(false);
+            toast({
+              title: "Error",
+              description: "There was an error loading your chapter",
+              variant: "destructive",
+            });
+            addChapterIdToSet();
+          },
+        });
+      },
+    }));
     return (
       <div
         key={chapter.id}
@@ -80,7 +80,7 @@ const ChapterCard = React.forwardRef<ChapterCardHandler, Props>(
         })}
       >
         <h5>{chapter.name}</h5>
-        {/* {isLoading && <Loader2 className="animate-spin" />} */}
+        {isPending && <Loader2 className="animate-spin" />}
       </div>
     );
   }
