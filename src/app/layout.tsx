@@ -10,7 +10,11 @@ import { Toaster } from "@/components/ui/toaster";
 
 const lexend = Lexend({ subsets: ["latin"] });
 
+import localFont from 'next/font/local';
+
 const inter = Inter({ subsets: ["latin"] });
+
+const gilroy = localFont({src: '../../public/Gilroy-Regular.ttf'});
 
 export const metadata: Metadata = {
   title: "AIcademiX",
@@ -23,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={cn(lexend.className, 'antialiased min-h-screen pt-16')}>
+      <body className={cn(gilroy.className, 'antialiased min-h-screen pt-16')}>
         <Provider>
           <Navbar />
           {children}
