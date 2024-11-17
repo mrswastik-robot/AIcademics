@@ -1,110 +1,57 @@
-
 //api/course/createChapters
 
-import { NextResponse } from "next/server";
+import { generateCourseStructure, validateCourseStructure } from "@/lib/course-generation";
 import { getAuthSession } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { NextResponse } from "next/server";
 import { createChapterSchema } from "../../../../../validators/course";
 
-import { ZodError } from "zod";
-
-import axios from "axios";
-
-import { strict_output } from "@/lib/gpt";
-import { getUnsplashImage } from "@/lib/unsplash";
-
-export  async function POST(req: Request, res: Response) {
-
-    try {
-
-        const session = await getAuthSession();
-        if(!session?.user)
-        {
-            return new NextResponse("unauthorised",{status: 401});
-        }
-
-        const body = await req.json();
-        const { title , units} = createChapterSchema.parse(body);
-
-        type outputUnits = {                      //each unit will have a title and chapters and each chapter will have a youtube_search_query and chapter_title
-            title: string,
-            chapters: {
-                youtube_search_query: string,
-                chapter_title: string,
-            }[];
-        }[];
-
-        let output_units: outputUnits = await strict_output(
-            "You are an AI capable of curating course content, coming up with relevant chapter titles, and finding relevant youtube videos for each chapter",
-            new Array(units.length).fill(
-                `It is your job to create a course about ${title}. The user has requested to create chapters for each of the units. Then, for each chapter, provide a detailed youtube search query that can be used to find an informative educationalvideo for each chapter. Each query should give an educational informative course in youtube.`
-            ),
-            {    // the JSON returned by the GPT-3 API will be an array of units, each unit will have a title and chapters and each chapter will have a youtube_search_query and chapter_title
-                title: "title of the unit",
-                chapters:
-                "an array of chapters, each chapter should have a youtube_search_query and a chapter_title key in the JSON object",
-            },
-        );
-        
-        // console.log(output_units);
-        // return NextResponse.json(output_units, {status: 200});            //see output at postman at 1:55:24
-
-         const imageSearchTerm = await strict_output(
-            "you are an AI capable of finding the most relevant image for a course",
-            `Please provide a good image search term for the title of a course about ${title}. This search term will be fed into the unsplash API, so make sure it is a good search term that will return good results`,
-            {
-                image_search_term: "a good search term for the title of the course",
-            }
-        );
-
-        // return NextResponse.json({output_units, imageSearchTerm}, {status: 200})            //see output at postman at 2:01:48
-
-        const course_image = await getUnsplashImage(
-            imageSearchTerm.image_search_term
-        );
-
-        //ab nyi entry bana rahe under course table in out mysql db
-
-        const course = await prisma.course.create({
-            data: {
-                name: title,
-                image: course_image,
-            }
-        });
-
-        //now that we have created the course, we will create the chapters and units for the course
-
-        for (const unit of output_units)
-        {
-            const title = unit.title
-
-            const prismaUnit = await prisma.unit.create({
-                data:{
-                    name: title,
-                    courseId: course.id
-                }
-            });
-
-            await prisma.chapter.createMany({
-                data: unit.chapters.map((chapter) => {
-                return {
-                    name: chapter.chapter_title,
-                    youtubeSearchQuery: chapter.youtube_search_query,
-                    unitId: prismaUnit.id,
-                };
-                }),
-            });
-        }
-
-        return NextResponse.json({course_id: course.id})                //this will be responsible for redirecting the page after creating the form and clicking on ' let's go ' button
-                                                                        // 2:07 for the complete database relations
-    } catch (error) {
-
-        if(error instanceof ZodError)
-        {
-            return new NextResponse("invalid body",{status: 400})
-        }
-        
+export async function POST(req: Request, res: Response) {
+  try {
+    const session = await getAuthSession();
+    if (!session?.user) {
+      return new NextResponse("unauthorised", { status: 401 });
     }
 
+    const body = await req.json();
+    const { title, units: mainTopics } = createChapterSchema.parse(body);
+
+    // Generate course structure using our enhanced logic
+    try {
+      const courseStructure = await generateCourseStructure(title, mainTopics);
+
+      // Validate the generated structure
+      const validation = validateCourseStructure(courseStructure);
+      
+      if (!validation.isValid) {
+        console.log("Course structure validation failed:", validation.feedback);
+        return NextResponse.json({ 
+          error: "Generated course structure did not meet quality standards",
+          feedback: validation.feedback 
+        }, { status: 400 });
+      }
+
+      // Transform the structure to match your existing format
+      const output_units = courseStructure.units.map(unit => ({
+        title: unit.title,
+        chapters: unit.chapters.map(chapter => ({
+          youtube_search_query: chapter.youtube_search_query,
+          chapter_title: chapter.chapter_title
+        }))
+      }));
+
+      return NextResponse.json(output_units);
+    } catch (error) {
+      console.error("Course generation error:", error);
+      return NextResponse.json({ 
+        error: "Failed to generate course structure",
+        details: error instanceof Error ? error.message : "Unknown error"
+      }, { status: 500 });
+    }
+  } catch (error) {
+    console.error("API route error:", error);
+    return NextResponse.json({ 
+      error: "Error processing request",
+      details: error instanceof Error ? error.message : "Unknown error"
+    }, { status: 500 });
+  }
 }
