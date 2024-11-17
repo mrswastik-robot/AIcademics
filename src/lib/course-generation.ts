@@ -1,7 +1,7 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { PromptTemplate } from "@langchain/core/prompts";
-import { JsonOutputParser } from "@langchain/core/output_parsers";
-import { RunnableSequence } from "@langchain/core/runnables";
+import { JsonOutputFunctionsParser } from "langchain/output_parsers";
+import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
 
 // Define type-safe schemas for our course structure
@@ -24,108 +24,151 @@ const CourseStructureSchema = z.object({
 
 type CourseStructure = z.infer<typeof CourseStructureSchema>;
 
-// System prompts for each generation step
-const COURSE_OUTLINE_PROMPT = `You are an expert course creator with deep knowledge in creating educational content.
-Your task is to create a well-structured course outline that follows these principles:
+// Make the system prompt more explicit about unit requirements
+const SYSTEM_PROMPT = `You are an expert course creator with deep knowledge in creating educational content.
+Your task is to create a course structure that EXACTLY matches the provided topics.
 
-1. Progressive complexity - concepts build upon each other
-2. Practical relevance - focus on applicable knowledge
-3. Clear prerequisites - each unit clearly follows from previous units
-4. Comprehensive coverage - all important subtopics are included
-5. Logical flow - topics are ordered in a way that maximizes learning
+STRICT REQUIREMENTS:
+1. Create EXACTLY ONE UNIT for EACH provided topic - no more, no less
+2. Each unit title should closely match its corresponding topic
+3. Each unit must have 3-5 detailed chapters
+4. Each chapter must include:
+   - A specific, descriptive title
+   - A detailed YouTube search query
+   - 3-5 learning objectives
+   - 3-5 key concepts
 
-Format the course outline to be detailed yet concise.`;
-
-const UNIT_EXPANSION_PROMPT = `You are expanding a course unit into detailed chapters.
-For each chapter, consider:
-
-1. Specific learning objectives
-2. Key concepts to be covered
-3. How it builds on previous chapters
-4. Practical applications of the content
-5. Clear, focused scope for each chapter
-
-Make the youtube_search_query specific and detailed to find high-quality educational content.
-Include exact technical terms and prefer queries that would find comprehensive tutorials.`;
+Follow these principles:
+- Progressive complexity - concepts build upon each other
+- Practical relevance - focus on applicable knowledge
+- Clear prerequisites - each unit clearly follows from previous units
+- Comprehensive coverage - cover all aspects of each topic
+- Logical flow - order topics to maximize learning`;
 
 export async function generateCourseStructure(
   courseTitle: string,
   mainTopics: string[]
 ) {
-  const llm = new ChatOpenAI({
-    modelName: "gpt-3.5-turbo",
-    temperature: 0.3, // Lower temperature for more focused outputs
-    apiKey: process.env.OPENAI_API_KEY,
+  const model = new ChatOpenAI({
+    modelName: "gpt-3.5-turbo-1106",
+    temperature: 0.1,
   });
 
-  // Step 1: Generate high-level course outline
-  const outlinePrompt = PromptTemplate.fromTemplate(`
-    ${COURSE_OUTLINE_PROMPT}
-    
-    Course Title: {title}
-    Main Topics to Cover: {topics}
-    
-    Generate a high-level outline for this course.
-    Focus on creating a logical progression through the topics.
-    
-    Output the outline in a clear, structured format.`);
-
-  // Step 2: Generate detailed units with chapters
-  const unitsPrompt = PromptTemplate.fromTemplate(`
-    ${UNIT_EXPANSION_PROMPT}
-    
-    Course Title: {title}
-    Course Outline: {outline}
-    
-    For each unit in the outline, generate:
-    1. A clear title
-    2. A brief description
-    3. 3-5 focused chapters that cover the unit's content
-    4. For each chapter, include specific learning objectives and a detailed youtube search query
-    
-    Ensure each youtube search query is specific enough to find high-quality educational videos.`);
-
-  const outputParser = new JsonOutputParser();
-
-  const courseGenerationChain = RunnableSequence.from([
-    {
-      outline: async (input: { title: string; topics: string[] }) => {
-        const outlineResult = await llm.invoke(
-          await outlinePrompt.format({
-            title: input.title,
-            topics: input.topics.join(", "),
-          })
-        );
-        return outlineResult.content.toString();
+  // Create a more explicit function schema
+  const functionSchema = {
+    name: "create_course_unit",
+    description: "Create a single course unit with chapters",
+    parameters: {
+      type: "object",
+      properties: {
+        title: {
+          type: "string",
+          description: "The title of the unit"
+        },
+        description: {
+          type: "string",
+          description: "A brief description of the unit's content"
+        },
+        chapters: {
+          type: "array",
+          description: "3-5 chapters for this unit",
+          items: {
+            type: "object",
+            properties: {
+              chapter_title: {
+                type: "string",
+                description: "Title of the chapter"
+              },
+              youtube_search_query: {
+                type: "string",
+                description: "Detailed search query for finding relevant educational videos"
+              },
+              learning_objectives: {
+                type: "array",
+                description: "3-5 specific learning objectives",
+                items: { type: "string" }
+              },
+              key_concepts: {
+                type: "array",
+                description: "3-5 key concepts covered",
+                items: { type: "string" }
+              }
+            },
+            required: ["chapter_title", "youtube_search_query", "learning_objectives", "key_concepts"]
+          },
+          minItems: 3,
+          maxItems: 5
+        }
       },
-      title: (input: { title: string; topics: string[] }) => input.title,
-    },
-    {
-      structuredCourse: async (input: { outline: string; title: string }) => {
-        const unitsResult = await llm.invoke(
-          await unitsPrompt.format({
-            title: input.title,
-            outline: input.outline,
-          })
-        );
-        
-        // Parse and validate the output
-        const parsedOutput = await outputParser.parse(unitsResult.content.toString());
-        return CourseStructureSchema.parse(parsedOutput);
-      },
-    },
-  ]);
+      required: ["title", "description", "chapters"]
+    }
+  };
 
   try {
-    const result = await courseGenerationChain.invoke({
-      title: courseTitle,
-      topics: mainTopics,
-    });
+    // Generate units one by one
+    const generatedUnits = await Promise.all(mainTopics.map(async (topic) => {
+      const runnable = model
+        .bind({
+          functions: [functionSchema],
+          function_call: { name: "create_course_unit" }
+        })
+        .pipe(new JsonOutputFunctionsParser());
 
-    return result.structuredCourse;
+      const messages = [
+        new SystemMessage(SYSTEM_PROMPT),
+        new HumanMessage(
+          `Create a detailed unit structure for the topic "${topic}" as part of the course "${courseTitle}".
+          
+          Requirements:
+          1. The unit title should closely match the topic "${topic}"
+          2. Include 3-5 detailed chapters
+          3. Each chapter must have:
+             - A clear, specific title
+             - A detailed YouTube search query
+             - 3-5 learning objectives
+             - 3-5 key concepts
+          
+          Make sure all content is focused specifically on ${topic}.`
+        )
+      ];
+
+      const result = await runnable.invoke(messages);
+      console.log(`Generated unit for topic "${topic}":`, JSON.stringify(result, null, 2));
+      return result;
+    }));
+
+    // Combine all units into the course structure
+    const courseStructure = {
+      units: generatedUnits
+    };
+
+    // Validate the complete structure
+    try {
+      const parsedResult = CourseStructureSchema.parse(courseStructure);
+      
+      // Validate that each topic is represented
+      const unitTitles = parsedResult.units.map(unit => unit.title.toLowerCase());
+      const missingTopics = mainTopics.filter(topic => 
+        !unitTitles.some(title => title.includes(topic.toLowerCase()))
+      );
+
+      if (missingTopics.length > 0) {
+        throw new Error(`Missing units for topics: ${missingTopics.join(', ')}`);
+      }
+
+      return parsedResult;
+    } catch (validationError) {
+      console.error("Validation error:", validationError);
+      throw new Error(`Generated structure failed validation: ${validationError instanceof Error ? validationError.message : "Unknown error"}`);
+    }
+
   } catch (error) {
-    console.error("Error generating course structure:", error);
-    throw new Error("Failed to generate course structure");
+    console.error("Detailed generation error:", error);
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+    }
+    throw new Error(`Failed to generate course structure: ${error instanceof Error ? error.message : "Unknown error"}`);
   }
 }
 

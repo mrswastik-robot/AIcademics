@@ -4,6 +4,8 @@ import { generateCourseStructure, validateCourseStructure } from "@/lib/course-g
 import { getAuthSession } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { createChapterSchema } from "../../../../../validators/course";
+import { prisma } from "@/lib/db";
+import { getUnsplashImage } from "@/lib/unsplash";
 
 export async function POST(req: Request, res: Response) {
   try {
@@ -13,45 +15,93 @@ export async function POST(req: Request, res: Response) {
     }
 
     const body = await req.json();
-    const { title, units: mainTopics } = createChapterSchema.parse(body);
-
-    // Generate course structure using our enhanced logic
+    
     try {
-      const courseStructure = await generateCourseStructure(title, mainTopics);
-
-      // Validate the generated structure
-      const validation = validateCourseStructure(courseStructure);
+      const { title, units: mainTopics } = createChapterSchema.parse(body);
       
-      if (!validation.isValid) {
-        console.log("Course structure validation failed:", validation.feedback);
-        return NextResponse.json({ 
-          error: "Generated course structure did not meet quality standards",
-          feedback: validation.feedback 
+      // Validate minimum number of units
+      if (mainTopics.length < 3) {
+        return NextResponse.json({
+          error: "Insufficient units",
+          feedback: ["Please provide at least 3 units for the course"]
         }, { status: 400 });
       }
 
-      // Transform the structure to match your existing format
-      const output_units = courseStructure.units.map(unit => ({
-        title: unit.title,
-        chapters: unit.chapters.map(chapter => ({
-          youtube_search_query: chapter.youtube_search_query,
-          chapter_title: chapter.chapter_title
-        }))
-      }));
+      // Generate course structure
+      try {
+        const courseStructure = await generateCourseStructure(title, mainTopics);
+        const validation = validateCourseStructure(courseStructure);
+        
+        if (!validation.isValid) {
+          return NextResponse.json({ 
+            error: "Generated course structure did not meet quality standards",
+            feedback: validation.feedback 
+          }, { status: 400 });
+        }
 
-      return NextResponse.json(output_units);
-    } catch (error) {
-      console.error("Course generation error:", error);
+        // Get course image
+        let imageUrl;
+        try {
+          imageUrl = await getUnsplashImage(title);
+        } catch (imageError) {
+          console.error("Error getting image:", imageError);
+          imageUrl = ""; // Fallback to empty string if image fetch fails
+        }
+
+        // Create course in database
+        try {
+          const course = await prisma.course.create({
+            data: {
+              name: title,
+              image: imageUrl,
+              units: {
+                create: courseStructure.units.map((unit) => ({
+                  name: unit.title,
+                  chapters: {
+                    create: unit.chapters.map((chapter) => ({
+                      name: chapter.chapter_title,
+                      youtubeSearchQuery: chapter.youtube_search_query
+                    }))
+                  }
+                }))
+              }
+            }
+          });
+
+          return NextResponse.json({
+            course_id: course.id,
+            units: courseStructure.units
+          });
+
+        } catch (dbError) {
+          console.error("Database error:", dbError);
+          return NextResponse.json({ 
+            error: "Failed to save course",
+            details: "Database error occurred"
+          }, { status: 500 });
+        }
+
+      } catch (generationError) {
+        console.error("Generation error:", generationError);
+        return NextResponse.json({ 
+          error: "Failed to generate course structure",
+          details: generationError instanceof Error ? generationError.message : "Unknown error"
+        }, { status: 500 });
+      }
+
+    } catch (validationError) {
+      console.error("Validation error:", validationError);
       return NextResponse.json({ 
-        error: "Failed to generate course structure",
-        details: error instanceof Error ? error.message : "Unknown error"
-      }, { status: 500 });
+        error: "Invalid input",
+        details: "Please check your input values"
+      }, { status: 400 });
     }
+
   } catch (error) {
-    console.error("API route error:", error);
+    console.error("Unexpected error:", error);
     return NextResponse.json({ 
-      error: "Error processing request",
-      details: error instanceof Error ? error.message : "Unknown error"
+      error: "Server error",
+      details: "An unexpected error occurred"
     }, { status: 500 });
   }
 }
