@@ -19,14 +19,6 @@ export async function POST(req: Request, res: Response) {
     try {
       const { title, units: mainTopics } = createChapterSchema.parse(body);
       
-      // Validate minimum number of units
-      if (mainTopics.length < 3) {
-        return NextResponse.json({
-          error: "Insufficient units",
-          feedback: ["Please provide at least 3 units for the course"]
-        }, { status: 400 });
-      }
-
       // Generate course structure
       try {
         const courseStructure = await generateCourseStructure(title, mainTopics);

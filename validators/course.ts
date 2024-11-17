@@ -28,7 +28,7 @@ export const createChapterSchema = z.object({
 // Schema for the complete course structure (used for validation)
 export const courseStructureSchema = z.object({
   units: z.array(UnitSchema)
-    .min(3, 'Course must have at least 3 units')
+    .min(1, 'Course must have at least 1 unit')
     .max(8, 'Course cannot have more than 8 units'),
 });
 

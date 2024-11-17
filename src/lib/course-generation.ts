@@ -172,20 +172,26 @@ export async function generateCourseStructure(
   }
 }
 
-// Helper function to validate and score the generated structure
+// Updated validation function to handle single unit courses
 export function validateCourseStructure(
   courseStructure: CourseStructure
 ): { isValid: boolean; score: number; feedback: string[] } {
   const feedback: string[] = [];
   let score = 0;
+  const totalUnits = courseStructure.units.length;
 
-  // Validate number of units
-  if (courseStructure.units.length < 3 || courseStructure.units.length > 8) {
+  // Validate number of units - now accepts 1-8 units
+  if (totalUnits < 1 || totalUnits > 8) {
     feedback.push(
-      `Number of units (${courseStructure.units.length}) is not optimal. Aim for 3-8 units.`
+      `Number of units (${totalUnits}) is not valid. Must be between 1 and 8 units.`
     );
   } else {
-    score += 20;
+    // Adjust scoring based on number of units
+    if (totalUnits >= 3) {
+      score += 20; // Full score for 3+ units
+    } else {
+      score += 10; // Partial score for 1-2 units
+    }
   }
 
   // Validate each unit
@@ -198,7 +204,8 @@ export function validateCourseStructure(
         }) is not optimal. Aim for 3-5 chapters.`
       );
     } else {
-      score += 10;
+      // Adjust chapter scoring based on total units
+      score += totalUnits === 1 ? 30 : 10; // Higher score per unit when there's only one unit
     }
 
     // Check chapter titles and search queries
@@ -208,13 +215,17 @@ export function validateCourseStructure(
           `Chapter "${chapter.chapter_title}": Search query too short/generic.`
         );
       } else {
-        score += 5;
+        // Adjust scoring for search queries based on total units
+        score += totalUnits === 1 ? 10 : 5; // Higher score per chapter when there's only one unit
       }
     });
   });
 
+  // Adjust passing score based on number of units
+  const requiredScore = totalUnits === 1 ? 50 : 70;
+
   return {
-    isValid: score >= 70,
+    isValid: score >= requiredScore,
     score: Math.min(100, score),
     feedback,
   };
