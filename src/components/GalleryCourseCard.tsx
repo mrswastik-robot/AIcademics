@@ -14,28 +14,29 @@ type Props = {
 const GalleryCourseCard = async ({ course }: Props) => {
   return (
     <>
-      <div className="border rounded-lg border-secondary">
-        <div className="relative">
+      <div className="border-2 rounded-lg border-secondary w-[280px] h-[280px] flex flex-col">
+        <div className="relative h-[120px] w-full">
           <Link
             href={`/course/${course.id}/0/0`}
-            className="relative block w-fit"
+            className="relative block h-full"
           >
             <Image
               src={course.image || ""}
-              className="object-cover w-full max-h-[300px] rounded-t-lg"
-              width={300}
-              height={300}
+              className="object-cover rounded-t-lg"
+              fill
+              sizes="(max-width: 250px) 100vw"
+              priority
               alt="picture of the course"
             />
-            <span className="absolute px-2 py-1 text-white rounded-md bg-black/60 w-fit bottom-2 left-2 right-2">
+            <span className="absolute px-2 py-1 text-white rounded-md bg-black/60 w-fit bottom-2 left-2">
               {course.name}
             </span>
           </Link>
         </div>
 
-        <div className="p-4">
-          <h4 className="text-sm text-secondary-foreground/60">Units</h4>
-          <div className="space-y-1">
+        <div className="p-3 flex-1 overflow-hidden">
+          <h4 className="text-sm text-secondary-foreground/60 mb-2">Units</h4>
+          <div className="space-y-1 overflow-y-auto max-h-[120px] pr-2 text-sm">
             {course.units.map((unit, unitIndex) => {
               return (
                 <Link

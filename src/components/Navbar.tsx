@@ -4,6 +4,7 @@ import SignInButton from '@/components/SignInButton';
 import { getAuthSession } from "@/lib/auth";
 import UserAccountNav from "./UserAccountNav";
 import { ThemeToggle } from "./ThemeToggle";
+import { Button } from "./ui/button";
 
 type Props = {};
 
@@ -19,12 +20,16 @@ const Navbar = async (props: Props) => {
         </Link>
         <div className="flex items-center">
           <Link href="/gallery" className="mr-3">
+          <Button className="rounded-3xl" variant="outline">
             Gallery
+          </Button>
           </Link>
           {session?.user && (
             <>
               <Link href="/create" className="mr-3">
+              <Button className="rounded-3xl" variant="outline">
                 Create Course
+              </Button>
               </Link>
               
             </>
