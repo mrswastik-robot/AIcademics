@@ -9,6 +9,7 @@ import Image from "next/image";
 import { GitStarButton } from "@/components/eldoraui/gitstarbutton";
 import { Integrations } from "@/components/eldoraui/integrations";
 import Safari from "@/components/ui/safari";
+import AvatarCircles from "@/components/ui/avatar-circles";
 
 // import { getAuthSession } from "@/lib/auth";
 import Link from "next/link";
@@ -16,6 +17,33 @@ import Link from "next/link";
 const Index = () => {
 
   // const session = getAuthSession();
+
+  const avatars = [
+    {
+      imageUrl: "https://avatars.githubusercontent.com/u/16860528",
+      profileUrl: "https://github.com/dillionverma",
+    },
+    {
+      imageUrl: "https://avatars.githubusercontent.com/u/20110627",
+      profileUrl: "https://github.com/tomonarifeehan",
+    },
+    {
+      imageUrl: "https://avatars.githubusercontent.com/u/106103625",
+      profileUrl: "https://github.com/BankkRoll",
+    },
+    {
+      imageUrl: "https://avatars.githubusercontent.com/u/59228569",
+      profileUrl: "https://github.com/safethecode",
+    },
+    {
+      imageUrl: "https://avatars.githubusercontent.com/u/59442788",
+      profileUrl: "https://github.com/sanjay-mali",
+    },
+    {
+      imageUrl: "https://avatars.githubusercontent.com/u/89768406",
+      profileUrl: "https://github.com/itsarghyadas",
+    },
+  ];
 
   const [isHovered, setIsHovered] = useState(false);
 
@@ -227,6 +255,9 @@ const Index = () => {
             <p className="text-gray-400 mb-8 max-w-2xl mx-auto">
               Join thousands of learners who are already benefiting from AI-powered education
             </p>
+            <div className=" items-center justify-center flex mx-auto mb-6">
+              <AvatarCircles numPeople={99} avatarUrls={avatars} />
+            </div>
             <Link href="/create">
             <Button
               size="lg"

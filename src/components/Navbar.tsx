@@ -1,6 +1,7 @@
 import Link from "next/link";
 import React from "react";
 import SignInButton from '@/components/SignInButton';
+import { RainbowButton } from "./ui/rainbow-button";
 import { getAuthSession } from "@/lib/auth";
 import UserAccountNav from "./UserAccountNav";
 import { ThemeToggle } from "./ThemeToggle";
@@ -27,9 +28,9 @@ const Navbar = async (props: Props) => {
           {session?.user && (
             <>
               <Link href="/create" className="mr-3">
-              <Button className="rounded-3xl" variant="outline">
+              <RainbowButton className="rounded-3xl dark:text-white">
                 Create Course
-              </Button>
+              </RainbowButton>
               </Link>
               
             </>
