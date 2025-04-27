@@ -12,7 +12,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const defaultCategorySelect = document.getElementById('defaultCategory');
   const autoSaveYouTubeCheckbox = document.getElementById('autoSaveYouTube');
   const summarizeContentCheckbox = document.getElementById('summarizeContent');
+  const autoSummarizeCheckbox = document.getElementById('autoSummarize');
+  const extractEntitiesCheckbox = document.getElementById('extractEntities');
+  const openaiApiKeyInput = document.getElementById('openaiApiKey');
+  const showApiKeyBtn = document.getElementById('showApiKey');
   const saveToCategories = document.getElementsByName('saveToCategories');
+  
+  // Error logs elements
+  const toggleErrorLogsBtn = document.getElementById('toggleErrorLogsBtn');
+  const errorLogsContainer = document.getElementById('errorLogsContainer');
+  const errorLogs = document.getElementById('errorLogs');
+  const clearErrorLogsBtn = document.getElementById('clearErrorLogsBtn');
   
   // Load user data and settings
   loadUserData();
@@ -23,6 +33,38 @@ document.addEventListener('DOMContentLoaded', () => {
   logoutBtn.addEventListener('click', handleLogout);
   saveSettingsBtn.addEventListener('click', saveSettings);
   clearDataBtn.addEventListener('click', clearData);
+  
+  // Toggle API key visibility
+  if (showApiKeyBtn) {
+    showApiKeyBtn.addEventListener('click', () => {
+      if (openaiApiKeyInput.type === 'password') {
+        openaiApiKeyInput.type = 'text';
+        showApiKeyBtn.textContent = 'Hide';
+      } else {
+        openaiApiKeyInput.type = 'password';
+        showApiKeyBtn.textContent = 'Show';
+      }
+    });
+  }
+  
+  // Toggle error logs visibility
+  if (toggleErrorLogsBtn && errorLogsContainer) {
+    toggleErrorLogsBtn.addEventListener('click', () => {
+      if (errorLogsContainer.classList.contains('hidden')) {
+        errorLogsContainer.classList.remove('hidden');
+        toggleErrorLogsBtn.textContent = 'Hide Error Logs';
+        loadErrorLogs();
+      } else {
+        errorLogsContainer.classList.add('hidden');
+        toggleErrorLogsBtn.textContent = 'Show Error Logs';
+      }
+    });
+  }
+  
+  // Clear error logs
+  if (clearErrorLogsBtn) {
+    clearErrorLogsBtn.addEventListener('click', clearErrorLogs);
+  }
   
   // Handle login by redirecting to NextAuth sign-in page
   async function handleLogin() {
@@ -71,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Load settings from storage
   function loadSettings() {
-    chrome.storage.local.get(['settings'], (result) => {
+    chrome.storage.local.get(['settings', 'openaiApiKey'], (result) => {
       const settings = result.settings || {};
       
       // Set default category
@@ -85,6 +127,21 @@ document.addEventListener('DOMContentLoaded', () => {
       // Set summarize content option
       summarizeContentCheckbox.checked = settings.summarizeContent !== false; // default to true
       
+      // Set auto summarize option
+      if (autoSummarizeCheckbox) {
+        autoSummarizeCheckbox.checked = !!settings.autoSummarize;
+      }
+      
+      // Set extract entities option
+      if (extractEntitiesCheckbox) {
+        extractEntitiesCheckbox.checked = !!settings.extractEntities;
+      }
+      
+      // Set OpenAI API key
+      if (openaiApiKeyInput && result.openaiApiKey) {
+        openaiApiKeyInput.value = result.openaiApiKey;
+      }
+      
       // Set save to categories option
       const saveToCategory = settings.saveToCategories || 'prompt';
       for (let i = 0; i < saveToCategories.length; i++) {
@@ -93,6 +150,50 @@ document.addEventListener('DOMContentLoaded', () => {
           break;
         }
       }
+    });
+  }
+  
+  // Load error logs
+  function loadErrorLogs() {
+    if (!errorLogs) return;
+    
+    chrome.storage.local.get(['errorLogs'], (result) => {
+      const logs = result.errorLogs || [];
+      
+      if (logs.length === 0) {
+        errorLogs.innerHTML = '<p class="no-logs">No errors logged yet.</p>';
+        return;
+      }
+      
+      // Clear current logs
+      errorLogs.innerHTML = '';
+      
+      // Add logs in reverse chronological order (newest first)
+      logs.slice().reverse().forEach(log => {
+        const logEntry = document.createElement('div');
+        logEntry.classList.add('error-log-entry');
+        
+        // Format timestamp
+        const timestamp = new Date(log.timestamp);
+        const formattedTime = timestamp.toLocaleString();
+        
+        // Create log entry HTML
+        logEntry.innerHTML = `
+          <div class="error-log-time">${formattedTime}</div>
+          ${log.context ? `<div class="error-log-context">${log.context}</div>` : ''}
+          <div class="error-log-message">${log.message}</div>
+        `;
+        
+        errorLogs.appendChild(logEntry);
+      });
+    });
+  }
+  
+  // Clear error logs
+  function clearErrorLogs() {
+    chrome.storage.local.remove(['errorLogs'], () => {
+      showStatus('Error logs cleared', 'success');
+      loadErrorLogs(); // Reload (empty) logs
     });
   }
   
@@ -115,10 +216,40 @@ document.addEventListener('DOMContentLoaded', () => {
       saveToCategories: selectedSaveToCategories
     };
     
-    // Save to storage
+    // Add AI settings if available
+    if (autoSummarizeCheckbox) {
+      settings.autoSummarize = autoSummarizeCheckbox.checked;
+    }
+    
+    if (extractEntitiesCheckbox) {
+      settings.extractEntities = extractEntitiesCheckbox.checked;
+    }
+    
+    // Save settings to storage
     chrome.storage.local.set({ settings }, () => {
       showStatus('Settings saved successfully', 'success');
     });
+    
+    // Save OpenAI API key if provided
+    if (openaiApiKeyInput && openaiApiKeyInput.value) {
+      const apiKey = openaiApiKeyInput.value.trim();
+      
+      // Validate API key format (basic check)
+      if (apiKey.startsWith('sk-') && apiKey.length > 20) {
+        chrome.runtime.sendMessage({
+          action: 'setOpenAIApiKey',
+          apiKey: apiKey
+        }, (response) => {
+          if (response && response.success) {
+            showStatus('API key saved successfully', 'success');
+          } else {
+            showStatus('Failed to save API key: ' + (response?.error || 'Unknown error'), 'error');
+          }
+        });
+      } else if (apiKey) {
+        showStatus('Invalid OpenAI API key format', 'error');
+      }
+    }
   }
   
   // Clear local data

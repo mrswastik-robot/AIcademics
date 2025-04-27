@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Get references to DOM elements
   const savePageBtn = document.getElementById('savePage');
   const saveSelectionBtn = document.getElementById('saveSelection');
+  const saveVideoBtn = document.getElementById('saveVideo');
   const addTagBtn = document.getElementById('addTag');
   const viewDashboardBtn = document.getElementById('viewDashboard');
   const optionsBtn = document.getElementById('options');
@@ -13,6 +14,29 @@ document.addEventListener('DOMContentLoaded', () => {
   // Check authentication status
   checkAuthStatus();
   
+  // Get current tab information to check page type
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const currentTab = tabs[0];
+    const url = currentTab.url || '';
+    
+    // Check if this is a YouTube video
+    const isYouTube = url.includes('youtube.com/watch') || url.includes('youtu.be/');
+    
+    // Show or hide the save video button based on the page type
+    if (saveVideoBtn) {
+      if (isYouTube) {
+        saveVideoBtn.style.display = 'block';
+        // Add a hint about transcript extraction
+        showMessage('YouTube video detected. Transcript will be extracted if available.', 'info', 5000);
+      } else {
+        saveVideoBtn.style.display = 'none';
+      }
+    }
+    
+    // Suggest tags based on the current page
+    suggestTagsForPage(url, currentTab.title);
+  });
+  
   // Save the current page
   savePageBtn.addEventListener('click', () => {
     // Get current tab information
@@ -20,6 +44,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const currentTab = tabs[0];
       const selectedTags = getSelectedTags();
       const notes = notesTextarea.value;
+      
+      // Show loading indicator
+      showMessage('Saving page...', 'info');
       
       // Send message to background script
       chrome.runtime.sendMessage({
@@ -32,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (response && response.success) {
           showMessage('Page saved successfully!', 'success');
         } else {
-          showMessage('Failed to save page', 'error');
+          showMessage('Failed to save page: ' + (response?.error || 'Unknown error'), 'error');
         }
       });
     });
@@ -44,6 +71,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const currentTab = tabs[0];
       const selectedTags = getSelectedTags();
       const notes = notesTextarea.value;
+      
+      // Show loading indicator
+      showMessage('Getting selected text...', 'info');
       
       // Execute script to get selected text
       chrome.scripting.executeScript({
@@ -57,6 +87,9 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
         
+        // Show saving indicator
+        showMessage('Saving selection...', 'info');
+        
         // Send message to background script
         chrome.runtime.sendMessage({
           action: 'saveSelection',
@@ -69,12 +102,47 @@ document.addEventListener('DOMContentLoaded', () => {
           if (response && response.success) {
             showMessage('Selection saved successfully!', 'success');
           } else {
-            showMessage('Failed to save selection', 'error');
+            showMessage('Failed to save selection: ' + (response?.error || 'Unknown error'), 'error');
           }
         });
       });
     });
   });
+  
+  // Save YouTube video with transcript
+  if (saveVideoBtn) {
+    saveVideoBtn.addEventListener('click', () => {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const currentTab = tabs[0];
+        const url = currentTab.url || '';
+        const isYouTube = url.includes('youtube.com/watch') || url.includes('youtu.be/');
+        
+        if (!isYouTube) {
+          showMessage('Not a YouTube video page', 'error');
+          return;
+        }
+        
+        const selectedTags = getSelectedTags();
+        const notes = notesTextarea.value;
+        
+        // Show loading indicator
+        showMessage('Saving YouTube video...', 'info');
+        
+        // Send message to background script
+        chrome.runtime.sendMessage({
+          action: 'saveYouTubeVideo',
+          tags: selectedTags,
+          notes: notes
+        }, (response) => {
+          if (response && response.success) {
+            showMessage('YouTube video saved successfully!', 'success');
+          } else {
+            showMessage('Failed to save video: ' + (response?.error || 'Unknown error'), 'error');
+          }
+        });
+      });
+    });
+  }
   
   // Add a new custom tag
   addTagBtn.addEventListener('click', () => {
@@ -94,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Navigate to the dashboard
   viewDashboardBtn.addEventListener('click', () => {
-    chrome.tabs.create({ url: 'https://aicademics.yourdomain.com/dashboard' });
+    chrome.tabs.create({ url: 'https://aicademics-six.vercel.app/dashboard' });
   });
   
   // Open options page
@@ -145,6 +213,8 @@ function addTag(name) {
   
   const addTagBtn = document.getElementById('addTag');
   addTagBtn.parentNode.insertBefore(tag, addTagBtn);
+  
+  return tag;
 }
 
 // Save custom tags to storage
@@ -179,6 +249,92 @@ function loadCustomTags() {
       }
     });
   });
+}
+
+// Suggest tags based on the current page
+function suggestTagsForPage(url, title) {
+  // Simple rule-based tag suggestions
+  let suggestedTags = [];
+  
+  // Check URL patterns
+  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    suggestedTags.push('Video');
+  }
+  
+  if (url.includes('github.com')) {
+    suggestedTags.push('Code');
+    suggestedTags.push('Reference');
+  }
+  
+  if (url.includes('wikipedia.org')) {
+    suggestedTags.push('Reference');
+  }
+  
+  if (url.includes('coursera.org') || 
+      url.includes('udemy.com') || 
+      url.includes('edx.org') || 
+      url.includes('khanacademy.org')) {
+    suggestedTags.push('Course Material');
+  }
+  
+  if (url.includes('medium.com') || 
+      url.includes('dev.to') || 
+      url.includes('hashnode.com') || 
+      url.includes('blog')) {
+    suggestedTags.push('Article');
+  }
+  
+  if (url.includes('arxiv.org') || 
+      url.includes('researchgate.net') || 
+      url.includes('scholar.google.com') || 
+      url.includes('ieee.org')) {
+    suggestedTags.push('Research');
+    suggestedTags.push('Academic');
+  }
+  
+  // Check title patterns
+  const titleLower = title.toLowerCase();
+  if (titleLower.includes('tutorial') || 
+      titleLower.includes('guide') || 
+      titleLower.includes('how to') || 
+      titleLower.includes('learn')) {
+    suggestedTags.push('Tutorial');
+  }
+  
+  if (titleLower.includes('review') || 
+      titleLower.includes('analysis') || 
+      titleLower.includes('comparison')) {
+    suggestedTags.push('Review');
+  }
+  
+  // Highlight suggested tags
+  if (suggestedTags.length > 0) {
+    const allTags = document.querySelectorAll('.tag:not(.add)');
+    suggestedTags = [...new Set(suggestedTags)]; // Remove duplicates
+    
+    allTags.forEach(tag => {
+      if (suggestedTags.includes(tag.textContent)) {
+        tag.classList.add('suggested');
+        // Pre-select the first suggested tag
+        if (tag.textContent === suggestedTags[0]) {
+          tag.classList.add('selected');
+        }
+      }
+    });
+    
+    // Add any suggested tags that don't exist yet
+    suggestedTags.forEach(tagName => {
+      const exists = Array.from(allTags).some(tag => tag.textContent === tagName);
+      if (!exists) {
+        const newTag = addTag(tagName);
+        newTag.classList.add('suggested');
+        newTag.classList.add('selected');
+      }
+    });
+    
+    // Save the updated tags
+    saveCustomTags();
+  }
 }
 
 // Show status message

@@ -141,6 +141,15 @@ h2 {
   background-color: rgba(161, 123, 224, 0.1);
 }
 
+.tag.suggested {
+  border: 1px solid #A17BE0;
+  background-color: rgba(161, 123, 224, 0.1);
+}
+
+.tag.suggested:hover {
+  background-color: rgba(161, 123, 224, 0.2);
+}
+
 /* Notes */
 .notes {
   margin-bottom: 16px;
@@ -225,5 +234,49 @@ footer {
   to {
     opacity: 0;
     transform: translateY(-10px);
+  }
+}
+
+/* Button hover effects */
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Make the YouTube video save button stand out */
+#saveVideo {
+  background-color: #FF0000;
+  color: white;
+}
+
+#saveVideo:hover {
+  background-color: #CC0000;
+}
+
+/* Loading state for buttons */
+.btn.loading {
+  position: relative;
+  pointer-events: none;
+  color: transparent;
+}
+
+.btn.loading::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 50%;
+  margin-top: -8px;
+  margin-left: -8px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 } 
