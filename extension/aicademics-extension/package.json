@@ -1,0 +1,36 @@
+{
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/extension-js/extension.git",
+    "directory": "examples/init"
+  },
+  "name": "aicademics-extension",
+  "description": "An Extension.js example.",
+  "version": "0.0.1",
+  "keywords": [
+    "extension",
+    "browser-extension",
+    "web-extension",
+    "template"
+  ],
+  "scripts": {
+    "dev": "extension dev",
+    "start": "extension start",
+    "build": "extension build"
+  },
+  "dependencies": {
+    "@mozilla/readability": "^0.4.4",
+    "openai": "^4.19.0"
+  },
+  "devDependencies": {
+    "canvas": "^3.1.0",
+    "extension": "^2.0.0-rc.23"
+  },
+  "private": true,
+  "author": {
+    "name": "Your Name",
+    "email": "your@email.com",
+    "url": "https://yourwebsite.com"
+  }
+}

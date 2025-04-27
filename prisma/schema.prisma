@@ -50,6 +50,7 @@ model User {
   credits      Int       @default(10)
   accounts Account[]
   sessions Session[]
+  savedContents SavedContent[]
 }
 
 //a course contains many units
@@ -99,4 +100,22 @@ model Question {
   chapter  Chapter @relation(fields: [chapterId], references: [id])    //identifying which chapter this question belongs to
 
   @@index([chapterId], name: "chapterId")
+}
+
+// Saved content from the extension
+model SavedContent {
+  id          String   @id @default(cuid())
+  title       String
+  url         String
+  siteName    String?
+  contentType String    // 'page', 'selection', etc.
+  content     Json      // Store page content or selected text
+  tags        Json?     // Array of tags
+  notes       String?   @db.Text
+  savedAt     DateTime  @default(now())
+  
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId], name: "userId")
 }
