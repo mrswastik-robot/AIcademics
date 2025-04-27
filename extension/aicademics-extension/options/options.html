@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIcademics Knowledge Saver - Options</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>AIcademics Knowledge Saver</h1>
+      <p>Configure your extension settings</p>
+    </header>
+    
+    <main>
+      <section id="authSection" class="section">
+        <h2>Authentication</h2>
+        
+        <div id="loginForm" class="auth-form">
+          <p>Sign in with your AIcademics account to save and organize your learning materials.</p>
+          
+          <button id="loginBtn" class="btn primary">Sign in with Google</button>
+          
+          <div class="alternate-action">
+            <p class="note">This will open the AIcademics login page in a new tab. After signing in, return to this page.</p>
+          </div>
+        </div>
+        
+        <div id="userInfo" class="user-info hidden">
+          <p>Logged in as <span id="userEmail">user@example.com</span></p>
+          <button id="logoutBtn" class="btn danger">Logout</button>
+        </div>
+      </section>
+      
+      <section class="section">
+        <h2>General Settings</h2>
+        
+        <div class="form-group">
+          <label for="defaultCategory">Default Category</label>
+          <select id="defaultCategory">
+            <option value="Uncategorized">Uncategorized</option>
+            <option value="Course Material">Course Material</option>
+            <option value="Research">Research</option>
+            <option value="Reference">Reference</option>
+            <option value="Personal">Personal</option>
+          </select>
+        </div>
+        
+        <div class="form-group checkbox">
+          <input type="checkbox" id="autoSaveYouTube">
+          <label for="autoSaveYouTube">Auto-save YouTube videos when visiting</label>
+        </div>
+        
+        <div class="form-group">
+          <label>When saving content</label>
+          <div class="radio-group">
+            <div class="radio-option">
+              <input type="radio" name="saveToCategories" id="promptCategories" value="prompt">
+              <label for="promptCategories">Always prompt for categories</label>
+            </div>
+            <div class="radio-option">
+              <input type="radio" name="saveToCategories" id="autoCategories" value="auto">
+              <label for="autoCategories">Try to auto-detect categories</label>
+            </div>
+            <div class="radio-option">
+              <input type="radio" name="saveToCategories" id="defaultCategories" value="default">
+              <label for="defaultCategories">Always use default category</label>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group checkbox">
+          <input type="checkbox" id="summarizeContent">
+          <label for="summarizeContent">Generate summaries of saved content</label>
+        </div>
+      </section>
+      
+      <section class="section">
+        <h2>Advanced</h2>
+        
+        <div class="form-group">
+          <button id="clearDataBtn" class="btn danger">Clear Local Data</button>
+          <p class="note">This will remove all locally stored content, but won't affect data saved to your AIcademics account.</p>
+        </div>
+      </section>
+    </main>
+    
+    <footer>
+      <div id="statusMessage" class="status-message"></div>
+      <button id="saveSettingsBtn" class="btn primary">Save Settings</button>
+    </footer>
+  </div>
+  
+  <script src="options.js"></script>
+</body>
+</html> 

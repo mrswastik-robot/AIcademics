@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIcademics Knowledge Saver</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>AIcademics Knowledge Saver</h1>
+    </header>
+    
+    <div class="content">
+      <div class="actions">
+        <button id="savePage" class="btn primary">Save Current Page</button>
+        <button id="saveSelection" class="btn secondary">Save Selection</button>
+      </div>
+      
+      <div class="categories">
+        <h2>Categories</h2>
+        <div class="tag-container">
+          <span class="tag">Course Material</span>
+          <span class="tag">Research</span>
+          <span class="tag">Reference</span>
+          <span class="tag">Personal</span>
+          <span class="tag">Other</span>
+          <button id="addTag" class="tag add">+ Add</button>
+        </div>
+      </div>
+      
+      <div class="notes">
+        <h2>Notes</h2>
+        <textarea id="notes" placeholder="Add notes about this content..."></textarea>
+      </div>
+    </div>
+    
+    <footer>
+      <button id="viewDashboard" class="btn link">View Dashboard</button>
+      <button id="options" class="btn link">Options</button>
+    </footer>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html> 

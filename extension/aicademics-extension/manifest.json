@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json.schemastore.org/chrome-manifest.json",
+  "manifest_version": 3,
+  "version": "1.0",
+  "name": "AIcademics Knowledge Saver",
+  "description": "Save web content, articles, and videos to your AIcademics knowledge base for later retrieval and learning.",
+  "author": "AIcademics",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "AIcademics Knowledge Saver"
+  },
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting",
+    "identity",
+    "cookies"
+  ],
+  "host_permissions": [
+    "https://*.youtube.com/*",
+    "https://aicademics-six.vercel.app/*"
+  ],
+  "background": {
+    "service_worker": "background/service_worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/content_script.js"]
+    }
+  ],
+  "options_page": "options/options.html"
+}
