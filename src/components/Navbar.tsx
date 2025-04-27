@@ -6,6 +6,7 @@ import { getAuthSession } from "@/lib/auth";
 import UserAccountNav from "./UserAccountNav";
 import { ThemeToggle } from "./ThemeToggle";
 import { Button } from "./ui/button";
+import { Database } from "lucide-react";
 
 type Props = {};
 
@@ -32,7 +33,12 @@ const Navbar = async (props: Props) => {
                 Create Course
               </RainbowButton>
               </Link>
-              
+              <Link href="/dashboard" className="mr-3">
+                <Button className="rounded-3xl flex items-center gap-1" variant="outline">
+                  <Database className="h-4 w-4" />
+                  Knowledge
+                </Button>
+              </Link>
             </>
           )}
           <ThemeToggle className="mr-3" />
