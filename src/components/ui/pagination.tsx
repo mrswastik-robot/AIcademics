@@ -1,118 +1,94 @@
-import * as React from "react";
+import React from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
+import { Button } from "./button";
 
-interface PaginationProps extends React.HTMLAttributes<HTMLDivElement> {
+interface PaginationProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
-  siblingCount?: number;
+  className?: string;
 }
 
 export function Pagination({
   currentPage,
   totalPages,
   onPageChange,
-  siblingCount = 1,
   className,
-  ...props
 }: PaginationProps) {
-  // Generate page numbers array with dots for skipped pages
-  const getPageNumbers = () => {
-    const pageNumbers = [];
+  const generatePages = () => {
+    const pages = [];
+    const maxVisible = 5; // Maximum number of visible page buttons
     
-    // Always show first page
-    pageNumbers.push(1);
-    
-    // Calculate start and end of sibling range
-    const leftSiblingIndex = Math.max(currentPage - siblingCount, 2);
-    const rightSiblingIndex = Math.min(
-      currentPage + siblingCount,
-      totalPages - 1
-    );
-    
-    // Add dots or numbers
-    const shouldShowLeftDots = leftSiblingIndex > 2;
-    const shouldShowRightDots = rightSiblingIndex < totalPages - 1;
-    
-    // Handle left dots
-    if (shouldShowLeftDots) {
-      pageNumbers.push("dots-left");
-    } else if (totalPages > 1) {
-      // If no left dots, fill in the gap
-      for (let i = 2; i < leftSiblingIndex; i++) {
-        pageNumbers.push(i);
+    if (totalPages <= maxVisible) {
+      // Show all pages if there are fewer than maxVisible
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
       }
-    }
-    
-    // Add sibling pages
-    for (let i = leftSiblingIndex; i <= rightSiblingIndex; i++) {
-      pageNumbers.push(i);
-    }
-    
-    // Handle right dots
-    if (shouldShowRightDots) {
-      pageNumbers.push("dots-right");
     } else {
-      // If no right dots, fill in the gap
-      for (let i = rightSiblingIndex + 1; i < totalPages; i++) {
-        pageNumbers.push(i);
+      // Always include page 1
+      pages.push(1);
+      
+      // Calculate the range of visible pages
+      const startPage = Math.max(2, currentPage - 1);
+      const endPage = Math.min(totalPages - 1, currentPage + 1);
+      
+      // Add ellipsis after page 1 if needed
+      if (startPage > 2) {
+        pages.push(-1); // -1 represents ellipsis
       }
+      
+      // Add the range of visible pages
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+      
+      // Add ellipsis before the last page if needed
+      if (endPage < totalPages - 1) {
+        pages.push(-2); // -2 represents ellipsis (using a different value to avoid React key conflicts)
+      }
+      
+      // Always include the last page
+      pages.push(totalPages);
     }
     
-    // Always show last page if there's more than one page
-    if (totalPages > 1) {
-      pageNumbers.push(totalPages);
-    }
-    
-    return pageNumbers;
+    return pages;
   };
   
-  const pageNumbers = getPageNumbers();
+  if (totalPages <= 1) return null;
   
   return (
-    <div
-      className={cn("flex items-center justify-center space-x-2", className)}
-      {...props}
-    >
+    <div className={cn("flex justify-center items-center space-x-1", className)}>
       <Button
         variant="outline"
         size="icon"
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="h-8 w-8"
+        className="w-9 h-9"
       >
         <ChevronLeft className="h-4 w-4" />
-        <span className="sr-only">Previous Page</span>
       </Button>
       
-      {pageNumbers.map((page, index) => {
-        if (page === "dots-left" || page === "dots-right") {
+      {generatePages().map((page, index) => {
+        if (page < 0) {
           return (
-            <Button
-              key={`dots-${index}`}
-              variant="outline"
-              size="icon"
-              disabled
-              className="h-8 w-8"
+            <span
+              key={`ellipsis-${page}`}
+              className="w-9 h-9 flex items-center justify-center text-muted-foreground"
             >
-              <MoreHorizontal className="h-4 w-4" />
-              <span className="sr-only">More Pages</span>
-            </Button>
+              ...
+            </span>
           );
         }
         
         return (
           <Button
-            key={page}
+            key={`page-${page}`}
             variant={currentPage === page ? "default" : "outline"}
-            size="icon"
-            onClick={() => onPageChange(page as number)}
-            className="h-8 w-8"
+            onClick={() => onPageChange(page)}
+            className="w-9 h-9"
           >
             {page}
-            <span className="sr-only">Page {page}</span>
           </Button>
         );
       })}
@@ -122,10 +98,9 @@ export function Pagination({
         size="icon"
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="h-8 w-8"
+        className="w-9 h-9"
       >
         <ChevronRight className="h-4 w-4" />
-        <span className="sr-only">Next Page</span>
       </Button>
     </div>
   );

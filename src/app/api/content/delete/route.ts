@@ -9,38 +9,55 @@ export async function DELETE(req: Request) {
     if (!session?.user) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
-
-    // Get the content ID from the URL
+    
+    // Get content ID from query params
     const url = new URL(req.url);
     const id = url.searchParams.get("id");
-
+    
     if (!id) {
       return NextResponse.json({
         success: false,
-        error: "Content ID is required",
+        error: "Content ID is required"
       }, { status: 400 });
     }
-
-    // Get the existing content to verify ownership
-    const existingContent = await prisma.savedContent.findUnique({
-      where: { 
+    
+    // Check if the content exists and belongs to the user
+    const content = await prisma.savedContent.findUnique({
+      where: {
         id,
         userId: session.user.id
       }
     });
-
-    if (!existingContent) {
+    
+    if (!content) {
       return NextResponse.json({
         success: false,
-        error: "Content not found or not owned by user",
+        error: "Content not found or you don't have permission to delete it"
       }, { status: 404 });
     }
-
+    
+    // Delete related embeddings first (cascading delete will handle chunks)
+    const embedding = await prisma.contentEmbedding.findUnique({
+      where: {
+        savedContentId: id
+      }
+    });
+    
+    if (embedding) {
+      await prisma.contentEmbedding.delete({
+        where: {
+          id: embedding.id
+        }
+      });
+    }
+    
     // Delete the content
     await prisma.savedContent.delete({
-      where: { id }
+      where: {
+        id
+      }
     });
-
+    
     return NextResponse.json({
       success: true,
       message: "Content deleted successfully"

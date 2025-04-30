@@ -27,7 +27,7 @@ const CreatePage = async (props: Props) => {
         {/* Content */}
         <div className="flex flex-col items-start max-w-xl px-8 pt-4 mx-auto my-16 sm:px-0 relative">
           <h1 className="self-center text-3xl font-bold text-center sm:text-6xl">
-            Welcome to AIcademics!
+            Welcome to DIY-AI!
           </h1>
           <div className="flex p-4 mt-5 border-none bg-gray-100/80 dark:bg-secondary/80 backdrop-blur-sm rounded-lg">
             <InfoIcon className="w-12 h-12 mr-3 text-blue-400" />

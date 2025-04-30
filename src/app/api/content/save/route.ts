@@ -42,6 +42,11 @@ export async function POST(req: Request) {
       }
     });
 
+    // Trigger embedding generation in the background
+    generateEmbeddings(savedContent.id).catch(error => {
+      console.error("Error generating embeddings in background:", error);
+    });
+
     return NextResponse.json({
       success: true,
       contentId: savedContent.id
@@ -52,5 +57,28 @@ export async function POST(req: Request) {
       success: false,
       error: "Failed to save content"
     }, { status: 500 });
+  }
+}
+
+// Function to generate embeddings in the background
+async function generateEmbeddings(contentId: string): Promise<void> {
+  try {
+    // Call the embedding API
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/content/embed`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ id: contentId }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to generate embeddings: ${response.statusText}`);
+    }
+
+    console.log(`Embeddings generated for content ${contentId}`);
+  } catch (error) {
+    console.error(`Error generating embeddings for content ${contentId}:`, error);
+    throw error;
   }
 } 

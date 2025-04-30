@@ -113,9 +113,42 @@ model SavedContent {
   tags        Json?     // Array of tags
   notes       String?   @db.Text
   savedAt     DateTime  @default(now())
+  summary     String?   @db.Text
+  
+  // Embedding for vector search
+  embedding   ContentEmbedding?
   
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@index([userId], name: "userId")
+}
+
+// Content embeddings for vector search
+model ContentEmbedding {
+  id              String      @id @default(cuid())
+  embedding       String      @db.LongText   // Vector embedding stored as string
+  dimensions      Int         // Number of dimensions in the embedding
+  
+  // Text chunks for more precise retrieval
+  chunks          ContentChunk[]
+  
+  // Relation to saved content
+  savedContentId  String      @unique
+  savedContent    SavedContent @relation(fields: [savedContentId], references: [id], onDelete: Cascade)
+  
+  @@index([savedContentId], name: "savedContentId")
+}
+
+// Content chunks for detailed retrieval
+model ContentChunk {
+  id                String    @id @default(cuid())
+  content           String    @db.Text
+  embedding         String    @db.LongText
+  
+  // Relation to parent embedding
+  contentEmbeddingId String
+  contentEmbedding   ContentEmbedding @relation(fields: [contentEmbeddingId], references: [id], onDelete: Cascade)
+  
+  @@index([contentEmbeddingId], name: "contentEmbeddingId")
 }
